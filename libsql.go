@@ -54,7 +54,7 @@ type Option interface {
 type option func(*config) error
 
 type Replicated struct {
-	FrameNo int
+	FrameNo      int
 	FramesSynced int
 }
 
@@ -173,7 +173,7 @@ func (d driver) OpenConnector(dbAddress string) (sqldriver.Connector, error) {
 
 func libsqlSync(nativeDbPtr C.libsql_database_t) (Replicated, error) {
 	var errMsg *C.char
-	var rep C.replicated;
+	var rep C.replicated
 	statusCode := C.libsql_sync2(nativeDbPtr, &rep, &errMsg)
 	if statusCode != 0 {
 		return Replicated{0, 0}, libsqlError("failed to sync database ", statusCode, errMsg)
@@ -350,6 +350,10 @@ type conn struct {
 	nativePtr C.libsql_connection_t
 }
 
+func (c *conn) Batch(query string) error {
+	return c.BatchContext(context.Background(), query)
+}
+
 func (c *conn) Prepare(query string) (sqldriver.Stmt, error) {
 	return c.PrepareContext(context.Background(), query)
 }
@@ -441,6 +445,20 @@ func parseStatement(sql string) ([]string, []ParamsInfo, error) {
 		stmtsParams[idx] = ParamsInfo{nameParams, positionalParamsCount}
 	}
 	return stmts, stmtsParams, nil
+}
+
+func (c *conn) BatchContext(ctx context.Context, query string) error {
+	queryCString := C.CString(query)
+	defer C.free(unsafe.Pointer(queryCString))
+
+	var statusCode C.int
+	statusCode = C.libsql_connection_batch(c.nativePtr, queryCString)
+
+	if statusCode != 0 {
+		return libsqlError(fmt.Sprint("failed to execute batch ", query), statusCode, nil)
+	}
+
+	return nil
 }
 
 func (c *conn) PrepareContext(ctx context.Context, query string) (sqldriver.Stmt, error) {

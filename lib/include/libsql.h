@@ -27,6 +27,7 @@ typedef struct libsql_stmt libsql_stmt;
 
 typedef const libsql_database *libsql_database_t;
 
+
 typedef struct {
   int frame_no;
   int frames_synced;
@@ -122,6 +123,8 @@ int libsql_bind_blob(libsql_stmt_t stmt, int idx, const unsigned char *value, in
 int libsql_query_stmt(libsql_stmt_t stmt, libsql_rows_t *out_rows, const char **out_err_msg);
 
 int libsql_execute_stmt(libsql_stmt_t stmt, const char **out_err_msg);
+
+int libsql_connection_batch(libsql_connection_t self, const char *sql);
 
 int libsql_reset_stmt(libsql_stmt_t stmt, const char **out_err_msg);
 
